@@ -29,15 +29,13 @@ function Home() {
       </button>
 
 
-      // Home.jsx mein "Abhi Shuru Karo" button ke neeche ye add karo:
-
       <p className="mt-4 text-sm text-gray-400">
         Pehle se account hai?{' '}
         <button
           onClick={() => navigate('/login')}
           className="text-purple-600 font-semibold hover:underline"
         >
-          Login Karo →
+          Login  →
         </button>
       </p>
 
