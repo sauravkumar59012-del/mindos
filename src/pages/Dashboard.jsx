@@ -1,4 +1,5 @@
 // src/pages/Dashboard.jsx
+// Bilkul aisa hona chahiye — exact case match!
 import { useState, useEffect }  from 'react'
 import { useNavigate }           from 'react-router-dom'
 import { fetchDashboardStats }   from '../lib/stats'

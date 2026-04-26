@@ -4,7 +4,7 @@ const CONFIG = {
   SUPABASE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxcXVoa3Z5enZ0ZGV3b2plYWhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTk1MDIsImV4cCI6MjA5MjA5NTUwMn0.J9IRLEh5n2gbXAfP_Vqbgwl8k8B2mWdSXHxPJevPPQo',
   GROQ_KEY:     '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',
   GROQ_MODEL:   'llama-3.3-70b-versatile',
-  APP_URL:      'http://localhost:5173',
+  APP_URL:      'https://mindos-gamma.vercel.app',
 }
 
 // ================================
