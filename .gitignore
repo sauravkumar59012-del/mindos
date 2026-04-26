@@ -26,10 +26,9 @@ dist-ssr
 .vercel
 .env*.local
 
-
-
-# Secret files
+# Secret files — NEVER push these!
 .env
 .env.local
 .env.production
 extension/popup.js
+src/extension/
