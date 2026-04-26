@@ -2,7 +2,7 @@ import OpenAI from 'openai'
 
 // Groq — OpenAI jaisa API, bilkul FREE! ⚡
 const groq = new OpenAI({
-  apiKey: "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",
+  apiKey: "import.meta.env.VITE_GROQ_API_KEY",
   baseURL: "https://api.groq.com/openai/v1",
   dangerouslyAllowBrowser: true
 })
