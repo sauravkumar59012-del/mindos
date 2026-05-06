@@ -1,25 +1,23 @@
 import OpenAI from 'openai'
 
-// Groq — OpenAI jaisa API, bilkul FREE! ⚡
 const groq = new OpenAI({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
+  apiKey: "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",
   baseURL: "https://api.groq.com/openai/v1",
   dangerouslyAllowBrowser: true
 })
 
 export async function generateFlashcards(notes, subject = '') {
-  
   const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile", // FREE + Fast!
+    model: "llama-3.3-70b-versatile",
     messages: [
       {
         role: "system",
-        content: "Tu ek expert teacher hai. Hamesha valid JSON return kar. Koi extra text nahi."
+        content: "Tu ek expert teacher hai. Hamesha valid JSON return kar."
       },
       {
         role: "user",
         content: `
-Tu ek expert teacher hai jo student ke notes se 
+Tu ek expert teacher hai jo student ke notes se
 high-quality flashcards banata hai.
 
 ${subject ? `Subject: ${subject}` : ''}
@@ -31,14 +29,6 @@ ${notes}
 
 In notes se exactly 5 flashcards banao.
 
-RULES:
-- Question short aur clear ho
-- Answer simple aur samajhne wala ho  
-- Difficulty honestly assess karo:
-  easy   = basic definition
-  medium = concept application
-  hard   = complex understanding
-
 Sirf valid JSON return karo:
 {
   "flashcards": [
@@ -46,12 +36,6 @@ Sirf valid JSON return karo:
       "front": "Question?",
       "back": "Answer",
       "difficulty": "easy",
-      "hint": ""
-    },
-    {
-      "front": "Question?",
-      "back": "Answer", 
-      "difficulty": "medium",
       "hint": ""
     }
   ]
@@ -65,11 +49,11 @@ Sirf valid JSON return karo:
   })
 
   const result = JSON.parse(response.choices[0].message.content)
-  
+
   if (!result.flashcards || !Array.isArray(result.flashcards)) {
     throw new Error("AI ne galat format diya — dobara try karo")
   }
-  
+
   return result.flashcards
 }
 
