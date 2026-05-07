@@ -1,7 +1,7 @@
 import OpenAI from 'openai'
 
 const groq = new OpenAI({
-  apiKey: "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",
+  apiKey: import.meta.env.VITE_GROQ_API_KEY,
   baseURL: "https://api.groq.com/openai/v1",
   dangerouslyAllowBrowser: true
 })
