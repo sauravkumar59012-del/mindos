@@ -1,3 +1,4 @@
+// src/pages/Dashboard.jsx
 import { useState, useEffect }  from 'react'
 import { useNavigate }           from 'react-router-dom'
 import { fetchDashboardStats }   from '../lib/stats'
@@ -5,7 +6,8 @@ import StatsCard                 from '../components/StatsCard'
 import StreakCard                 from '../components/StreakCard'
 import WeeklyGraph               from '../components/WeeklyGraph'
 import NoteCapture               from '../components/NoteCapture'
-import PDFUpload                 from '../components/PDFUpload'  // ← NEW
+import PDFUpload                 from '../components/PDFUpload'
+import YouTubeCapture            from '../components/YouTubeCapture'
 import { signOut }               from '../lib/auth'
 
 function Dashboard() {
@@ -41,17 +43,27 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* Navbar */}
+      {/* ===== NAVBAR ===== */}
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <span className="text-2xl">🧠</span>
             <span className="text-xl font-bold text-purple-700">MindOS</span>
           </div>
+
+          {/* Action Buttons */}
           <div className="flex gap-2">
             <button
+              onClick={() => navigate('/tutor')}
+              className="flex items-center gap-1 bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition active:scale-95"
+            >
+              🤖 AI Tutor
+            </button>
+            <button
               onClick={() => navigate('/quiz')}
-              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-purple-700 transition active:scale-95"
+              className="flex items-center gap-2 bg-purple-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-purple-700 transition active:scale-95"
             >
               🎯 Quiz
               {stats?.dueToday > 0 && (
@@ -62,24 +74,25 @@ function Dashboard() {
             </button>
             <button
               onClick={async () => { await signOut(); navigate('/login') }}
-              className="text-sm text-gray-400 px-3 py-2 rounded-xl hover:bg-gray-100"
+              className="text-xs text-gray-400 px-3 py-2 rounded-xl hover:bg-gray-100 transition"
             >
               Logout
             </button>
           </div>
         </div>
 
-        {/* Tabs — PDF TAB ADD KIYA! */}
-        <div className="max-w-2xl mx-auto px-4 flex gap-1 pb-2">
+        {/* ===== TABS ===== */}
+        <div className="max-w-2xl mx-auto px-4 flex gap-1 pb-2 overflow-x-auto">
           {[
-            { id: 'home',  label: '🏠 Home'       },
-            { id: 'notes', label: '📝 Notes'      },
-            { id: 'pdf',   label: '📄 PDF Upload' }, // ← NEW TAB
+            { id: 'home',    label: '🏠 Home'    },
+            { id: 'notes',   label: '📝 Notes'   },
+            { id: 'pdf',     label: '📄 PDF'     },
+            { id: 'youtube', label: '🎥 YouTube' },
           ].map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+              className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition ${
                 tab === t.id
                   ? 'bg-purple-100 text-purple-700'
                   : 'text-gray-500 hover:bg-gray-100'
@@ -91,35 +104,47 @@ function Dashboard() {
         </div>
       </nav>
 
+      {/* ===== MAIN CONTENT ===== */}
       <div className="max-w-2xl mx-auto px-4 py-6">
 
-        {/* HOME TAB */}
+        {/* ===== HOME TAB ===== */}
         {tab === 'home' && (
           <div className="space-y-5">
+
+            {/* Hero Banner */}
             <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-5 text-white">
               <p className="text-purple-200 text-sm mb-1">
                 {greeting.emoji} {greeting.text}!
               </p>
-              <h1 className="text-2xl font-bold mb-3">MindOS Dashboard</h1>
+              <h1 className="text-2xl font-bold mb-3">
+                MindOS Dashboard
+              </h1>
               {!loading && stats?.dueToday > 0 ? (
                 <div
                   onClick={() => navigate('/quiz')}
                   className="bg-white/20 rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-white/30 transition"
                 >
                   <div>
-                    <p className="font-semibold text-sm">🎯 {stats.dueToday} cards ready hain!</p>
-                    <p className="text-purple-200 text-xs mt-0.5">Quiz shuru karo →</p>
+                    <p className="font-semibold text-sm">
+                      🎯 {stats.dueToday} cards ready hain!
+                    </p>
+                    <p className="text-purple-200 text-xs mt-0.5">
+                      Quiz shuru karo →
+                    </p>
                   </div>
                   <span className="text-2xl font-bold">{stats.dueToday}</span>
                 </div>
               ) : (
                 <div className="bg-white/20 rounded-xl p-3">
                   <p className="font-semibold text-sm">✅ Aaj ka kaam ho gaya!</p>
-                  <p className="text-purple-200 text-xs mt-0.5">Naye notes ya PDF add karo</p>
+                  <p className="text-purple-200 text-xs mt-0.5">
+                    Notes, PDF ya YouTube add karo!
+                  </p>
                 </div>
               )}
             </div>
 
+            {/* Loading Skeleton */}
             {loading ? (
               <div className="grid grid-cols-2 gap-3">
                 {[...Array(4)].map((_, i) => (
@@ -128,18 +153,42 @@ function Dashboard() {
               </div>
             ) : (
               <>
+                {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                  <StatsCard icon="📝" label="Total Notes"  value={stats?.totalNotes || 0}    color="blue"   />
-                  <StatsCard icon="🃏" label="Total Cards"  value={stats?.totalCards || 0}    color="purple" />
-                  <StatsCard icon="🎯" label="Due Today"    value={stats?.dueToday || 0}      color={stats?.dueToday > 0 ? 'amber' : 'green'} />
-                  <StatsCard icon="✅" label="Aaj Kiye"     value={stats?.reviewedToday || 0} color="green"  />
+                  <StatsCard
+                    icon="📝" label="Total Notes"
+                    value={stats?.totalNotes || 0}
+                    sub="Notes banaye" color="blue"
+                  />
+                  <StatsCard
+                    icon="🃏" label="Total Cards"
+                    value={stats?.totalCards || 0}
+                    sub="Flashcards" color="purple"
+                  />
+                  <StatsCard
+                    icon="🎯" label="Due Today"
+                    value={stats?.dueToday || 0}
+                    sub="Review karo"
+                    color={stats?.dueToday > 0 ? 'amber' : 'green'}
+                  />
+                  <StatsCard
+                    icon="✅" label="Aaj Kiye"
+                    value={stats?.reviewedToday || 0}
+                    sub="Reviews today" color="green"
+                  />
                 </div>
+
+                {/* Streak */}
                 <StreakCard streak={stats?.streak || 0} />
+
+                {/* Graph */}
                 <WeeklyGraph data={stats?.weeklyData || []} />
 
                 {/* Quick Actions */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-4">
-                  <h3 className="font-bold text-gray-800 mb-3">⚡ Quick Actions</h3>
+                  <h3 className="font-bold text-gray-800 mb-3">
+                    ⚡ Quick Actions
+                  </h3>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setTab('notes')}
@@ -149,9 +198,21 @@ function Dashboard() {
                     </button>
                     <button
                       onClick={() => setTab('pdf')}
-                      className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-red-700 font-medium text-sm hover:bg-red-100 transition"
+                      className="flex items-center gap-2 p-3 rounded-xl bg-orange-50 text-orange-700 font-medium text-sm hover:bg-orange-100 transition"
                     >
                       <span className="text-xl">📄</span> PDF Upload
+                    </button>
+                    <button
+                      onClick={() => setTab('youtube')}
+                      className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-red-700 font-medium text-sm hover:bg-red-100 transition"
+                    >
+                      <span className="text-xl">🎥</span> YouTube
+                    </button>
+                    <button
+                      onClick={() => navigate('/tutor')}
+                      className="flex items-center gap-2 p-3 rounded-xl bg-indigo-50 text-indigo-700 font-medium text-sm hover:bg-indigo-100 transition"
+                    >
+                      <span className="text-xl">🤖</span> AI Tutor
                     </button>
                     <button
                       onClick={() => navigate('/quiz')}
@@ -168,31 +229,47 @@ function Dashboard() {
                   </div>
                 </div>
 
+                {/* Motivational Quote */}
                 <MotivationalQuote />
               </>
             )}
           </div>
         )}
 
-        {/* NOTES TAB */}
-        {tab === 'notes' && <NoteCapture onSuccess={loadStats} />}
+        {/* ===== NOTES TAB ===== */}
+        {tab === 'notes' && (
+          <NoteCapture onSuccess={loadStats} />
+        )}
 
-        {/* PDF TAB — NEW! */}
-        {tab === 'pdf' && <PDFUpload onSuccess={loadStats} />}
+        {/* ===== PDF TAB ===== */}
+        {tab === 'pdf' && (
+          <PDFUpload onSuccess={loadStats} />
+        )}
+
+        {/* ===== YOUTUBE TAB ===== */}
+        {tab === 'youtube' && (
+          <YouTubeCapture onSuccess={loadStats} />
+        )}
 
       </div>
     </div>
   )
 }
 
+// ================================
+// MOTIVATIONAL QUOTE
+// ================================
 function MotivationalQuote() {
   const quotes = [
     { text: "Padhai aaj ki mehnat — kal ki kamiyabi!" },
-    { text: "Ek ek card — ek ek step aage!" },
+    { text: "Ek ek card — ek ek step aage!"           },
     { text: "Consistency beats talent — roz thoda thoda!" },
     { text: "Jo aaj sikh liya — wo zindagi bhar kaam aayega!" },
     { text: "Brain gym karo — har roz thodi practice!" },
+    { text: "Failure nahi — sirf feedback hai!"        },
+    { text: "Chhoti chhoti victories — badi safalta!"  },
   ]
+
   const quote = quotes[new Date().getDate() % quotes.length]
 
   return (
