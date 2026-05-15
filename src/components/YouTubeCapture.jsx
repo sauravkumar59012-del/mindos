@@ -1,25 +1,24 @@
 // src/components/YouTubeCapture.jsx
-import { useState }             from 'react'
-import { supabase }             from '../lib/supabase'
-import { generateFlashcards }   from '../lib/openai'
-import {
-  extractVideoId,
-  getThumbnailUrl,
-  getVideoTitle,
-  fetchTranscript,
-  chunkTranscript
-} from '../lib/youtubeUtils'
+// YouTube URL + Manual transcript paste = Flashcards!
+
+import { useState }           from 'react'
+import { supabase }           from '../lib/supabase'
+import { generateFlashcards } from '../lib/openai'
+import { extractVideoId, getThumbnailUrl, getVideoTitle } from '../lib/youtubeUtils'
 
 function YouTubeCapture({ onSuccess }) {
 
-  const [url,      setUrl]      = useState('')
-  const [subject,  setSubject]  = useState('')
-  const [loading,  setLoading]  = useState(false)
-  const [progress, setProgress] = useState('')
-  const [message,  setMessage]  = useState(null)
-  const [cards,    setCards]    = useState([])
-  const [flipped,  setFlipped]  = useState({})
-  const [videoInfo,setVideoInfo]= useState(null)
+  const [url,       setUrl]       = useState('')
+  const [transcript,setTranscript]= useState('')
+  const [subject,   setSubject]   = useState('')
+  const [loading,   setLoading]   = useState(false)
+  const [progress,  setProgress]  = useState('')
+  const [message,   setMessage]   = useState(null)
+  const [cards,     setCards]     = useState([])
+  const [flipped,   setFlipped]   = useState({})
+  const [videoInfo, setVideoInfo] = useState(null)
+  const [mode,      setMode]      = useState('auto')
+  // mode: 'auto' = URL se try, 'manual' = text paste karo
 
   const subjects = [
     'Computer Science', 'Mathematics', 'Physics',
@@ -40,22 +39,23 @@ function YouTubeCapture({ onSuccess }) {
   }
 
   // ================================
-  // URL validate karo
+  // URL Change Handler
   // ================================
-  function handleUrlChange(e) {
+  async function handleUrlChange(e) {
     const value = e.target.value
     setUrl(value)
     setMessage(null)
     setVideoInfo(null)
     setCards([])
 
-    // Video ID extract karo
     const videoId = extractVideoId(value)
     if (videoId) {
       setVideoInfo({ videoId, loading: true })
-      // Title fetch karo
-      getVideoTitle(videoId).then(title => {
-        setVideoInfo({ videoId, title, thumbnail: getThumbnailUrl(videoId) })
+      const title = await getVideoTitle(videoId)
+      setVideoInfo({
+        videoId,
+        title,
+        thumbnail: getThumbnailUrl(videoId)
       })
     }
   }
@@ -67,13 +67,15 @@ function YouTubeCapture({ onSuccess }) {
 
     const videoId = extractVideoId(url)
 
-    if (!url.trim()) {
-      setMessage({ type: 'warn', text: '⚠️ YouTube URL paste karo!' })
+    // Validation
+    if (!url.trim() && !transcript.trim()) {
+      setMessage({ type: 'warn', text: '⚠️ YouTube URL ya transcript paste karo!' })
       return
     }
 
-    if (!videoId) {
-      setMessage({ type: 'warn', text: '⚠️ Valid YouTube URL nahi hai!' })
+    // Manual mode mein transcript check karo
+    if (mode === 'manual' && transcript.trim().length < 100) {
+      setMessage({ type: 'warn', text: '⚠️ Thoda aur transcript paste karo!' })
       return
     }
 
@@ -84,43 +86,65 @@ function YouTubeCapture({ onSuccess }) {
 
     try {
 
-      // STEP 1 — User check
+      // User check
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Login karo pehle!')
 
-      // STEP 2 — Video title lo
-      setProgress('🎥 Video info fetch ho rahi hai...')
-      const title = videoInfo?.title || await getVideoTitle(videoId)
+      let textToUse  = ''
+      let title      = 'YouTube Video'
 
-      // STEP 3 — Transcript fetch karo
-      setProgress('📝 Transcript fetch ho raha hai...')
-      const result = await fetchTranscript(videoId)
+      if (mode === 'manual' || transcript.trim()) {
+        // Manual transcript use karo
+        textToUse = transcript.trim()
+        title     = videoInfo?.title || 'YouTube Video'
 
-      if (!result || !result.text) {
-        throw new Error(
-          'Is video ka transcript available nahi hai! ' +
-          'Try karo:\n• English captions wala video\n• Auto-generated captions wala video'
-        )
+      } else {
+        // Auto mode — URL se try karo
+        setProgress('🎥 Video info fetch ho rahi hai...')
+        title = videoInfo?.title || await getVideoTitle(videoId || '')
+
+        setProgress('📝 Transcript fetch ho raha hai...')
+
+        // Rapid API ya proxy se try karo
+        try {
+          const res = await fetch(
+            `https://yt-transcript-api.vercel.app/api/transcript?videoId=${videoId}`
+          )
+          if (res.ok) {
+            const data = await res.json()
+            textToUse = data.transcript || ''
+          }
+        } catch {
+          // Silently fail
+        }
+
+        // Agar transcript nahi mila
+        if (!textToUse || textToUse.length < 100) {
+          setLoading(false)
+          setMode('manual')
+          setMessage({
+            type: 'warn',
+            text: '⚠️ Auto transcript nahi mila! Neeche manually paste karo.'
+          })
+          return
+        }
       }
 
-      const { text } = result
-
-      if (text.length < 100) {
-        throw new Error('Transcript bahut chhota hai — dusra video try karo!')
+      if (textToUse.length < 100) {
+        throw new Error('Text bahut chhota hai — aur content paste karo!')
       }
 
-      // STEP 4 — Chunk karo
-      setProgress('✂️ Text process ho raha hai...')
-      const chunks   = chunkTranscript(text, 3000)
-      const useChunk = chunks[0]
-
-      // STEP 5 — Note save karo
+      // Note save karo
       setProgress('💾 Note save ho raha hai...')
+      const noteTitle = url
+        ? `YT: ${title}`
+        : `YouTube Notes: ${subject || 'General'}`
+
       const { data: note, error: noteError } = await supabase
         .from('notes')
         .insert({
-          title:   `YT: ${title}`,
-          content: useChunk,
+          title:   noteTitle,
+          content: textToUse.substring(0, 5000),
           source:  subject || 'YouTube',
           user_id: user.id,
         })
@@ -129,11 +153,14 @@ function YouTubeCapture({ onSuccess }) {
 
       if (noteError) throw new Error('Note save nahi hua: ' + noteError.message)
 
-      // STEP 6 — AI flashcards
+      // AI flashcards
       setProgress('🤖 AI flashcards bana raha hai...')
-      const flashcards = await generateFlashcards(useChunk, subject)
+      const flashcards = await generateFlashcards(
+        textToUse.substring(0, 3000),
+        subject
+      )
 
-      // STEP 7 — Cards save
+      // Cards save
       setProgress('✨ Cards save ho rahi hain...')
       const cardsToSave = flashcards.map(card => ({
         note_id:    note.id,
@@ -147,15 +174,16 @@ function YouTubeCapture({ onSuccess }) {
         .from('flashcards')
         .insert(cardsToSave)
 
-      if (cardsError) throw new Error('Cards save nahi hui: ' + cardsError.message)
+      if (cardsError) throw new Error('Cards save nahi hui!')
 
-      // SUCCESS
+      // Success
       setCards(flashcards)
       setMessage({
         type: 'success',
-        text: `🎉 ${flashcards.length} flashcards ban gayi YouTube video se!`
+        text: `🎉 ${flashcards.length} flashcards ban gayi!`
       })
       setUrl('')
+      setTranscript('')
       setVideoInfo(null)
       setProgress('')
       if (onSuccess) onSuccess()
@@ -180,17 +208,40 @@ function YouTubeCapture({ onSuccess }) {
     <div className="max-w-2xl mx-auto px-4 py-8">
 
       {/* Header */}
-      <div className="mb-8 text-center">
+      <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           🎥 YouTube → Flashcards
         </h1>
-        <p className="text-gray-400">
-          YouTube URL paste karo — AI transcript se flashcards banayega!
+        <p className="text-gray-400 text-sm">
+          YouTube URL paste karo ya transcript manually daalo!
         </p>
       </div>
 
-      {/* Form */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
+
+        {/* Mode Toggle */}
+        <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
+          <button
+            onClick={() => { setMode('auto'); setMessage(null) }}
+            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+              mode === 'auto'
+                ? 'bg-white text-red-600 shadow-sm'
+                : 'text-gray-500'
+            }`}
+          >
+            🔗 URL Se Auto
+          </button>
+          <button
+            onClick={() => { setMode('manual'); setMessage(null) }}
+            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${
+              mode === 'manual'
+                ? 'bg-white text-red-600 shadow-sm'
+                : 'text-gray-500'
+            }`}
+          >
+            📋 Manual Paste
+          </button>
+        </div>
 
         {/* URL Input */}
         <div className="mb-4">
@@ -207,12 +258,12 @@ function YouTubeCapture({ onSuccess }) {
         </div>
 
         {/* Video Preview */}
-        {videoInfo && !videoInfo.loading && (
+        {videoInfo && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 flex gap-3 items-center">
             {videoInfo.thumbnail && (
               <img
                 src={videoInfo.thumbnail}
-                alt="thumbnail"
+                alt="thumb"
                 className="w-20 h-14 object-cover rounded-lg shrink-0"
                 onError={e => e.target.style.display = 'none'}
               />
@@ -221,10 +272,57 @@ function YouTubeCapture({ onSuccess }) {
               <p className="text-sm font-semibold text-red-800 line-clamp-2">
                 ✅ {videoInfo.title}
               </p>
-              <p className="text-xs text-red-500 mt-1">
-                ID: {videoInfo.videoId}
+            </div>
+          </div>
+        )}
+
+        {/* Manual Transcript */}
+        {mode === 'manual' && (
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              📋 Transcript / Notes Yahan Paste Karo
+            </label>
+            <textarea
+              value={transcript}
+              onChange={e => setTranscript(e.target.value)}
+              placeholder={`YouTube se transcript kaise copy karein:
+
+1. YouTube video kholo
+2. Video ke neeche "..." click karo
+3. "Show transcript" click karo
+4. Saara text select karo → Copy karo
+5. Yahan paste karo!
+
+Ya video ke notes bhi paste kar sakte ho.`}
+              rows={8}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+            />
+            <div className="flex justify-between mt-1">
+              <p className={`text-xs ${transcript.length < 100 ? 'text-red-400' : 'text-green-500'}`}>
+                {transcript.length < 100
+                  ? `${100 - transcript.length} aur characters chahiye`
+                  : '✅ Ready!'}
+              </p>
+              <p className="text-xs text-gray-400">
+                {transcript.length} chars
               </p>
             </div>
+          </div>
+        )}
+
+        {/* How to get transcript */}
+        {mode === 'manual' && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
+            <p className="text-xs font-semibold text-yellow-800 mb-2">
+              📌 YouTube Transcript Kaise Lo:
+            </p>
+            <ol className="text-xs text-yellow-700 space-y-1">
+              <li>1. YouTube video kholo browser mein</li>
+              <li>2. Video ke neeche <strong>"..."</strong> (3 dots) click karo</li>
+              <li>3. <strong>"Show transcript"</strong> click karo</li>
+              <li>4. Right side mein transcript aayega</li>
+              <li>5. <strong>Ctrl+A</strong> → <strong>Ctrl+C</strong> → Yahan paste karo!</li>
+            </ol>
           </div>
         )}
 
@@ -245,19 +343,6 @@ function YouTubeCapture({ onSuccess }) {
           </select>
         </div>
 
-        {/* Tips */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
-          <p className="text-xs text-yellow-800 font-semibold mb-1">
-            💡 Best Results Ke Liye:
-          </p>
-          <ul className="text-xs text-yellow-700 space-y-1">
-            <li>• Educational videos use karo (lectures, tutorials)</li>
-            <li>• English captions wale videos prefer karo</li>
-            <li>• 5-20 minute ke videos best hain</li>
-            <li>• Shorts pe transcript nahi hota</li>
-          </ul>
-        </div>
-
         {/* Progress */}
         {progress && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-sm text-blue-700 font-medium text-center">
@@ -265,10 +350,26 @@ function YouTubeCapture({ onSuccess }) {
           </div>
         )}
 
-        {/* Button */}
+        {/* Message */}
+        {message && (
+          <div className={`border rounded-xl p-3 mb-4 text-sm font-medium text-center ${msgStyle[message.type]}`}>
+            {message.text}
+            {/* Manual mode suggestion */}
+            {message.type === 'warn' && mode === 'auto' && (
+              <button
+                onClick={() => setMode('manual')}
+                className="block mx-auto mt-2 text-xs bg-yellow-600 text-white px-4 py-1.5 rounded-lg hover:bg-yellow-700 transition"
+              >
+                📋 Manual Mode Switch Karo →
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Generate Button */}
         <button
           onClick={handleProcess}
-          disabled={loading || !url.trim()}
+          disabled={loading || (!url.trim() && !transcript.trim())}
           className="w-full bg-red-500 text-white py-4 rounded-xl font-bold text-base hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
         >
           {loading
@@ -281,18 +382,11 @@ function YouTubeCapture({ onSuccess }) {
                 Processing...
               </span>
             )
-            : '🎬 YouTube Se Flashcards Banao'
+            : '🎬 Flashcards Banao'
           }
         </button>
 
       </div>
-
-      {/* Message */}
-      {message && (
-        <div className={`border rounded-xl p-4 mb-6 text-sm font-medium text-center ${msgStyle[message.type]}`}>
-          {message.text}
-        </div>
-      )}
 
       {/* Flashcards */}
       {cards.length > 0 && (
@@ -338,7 +432,7 @@ function YouTubeCapture({ onSuccess }) {
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-red-500 border-2 border-red-500 rounded-2xl p-5">
+                  <div className="bg-red-500 rounded-2xl p-5">
                     <span className="text-xs font-semibold text-red-200 uppercase">
                       Card {i + 1} — Answer
                     </span>

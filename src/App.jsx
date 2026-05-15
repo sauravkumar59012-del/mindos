@@ -6,6 +6,7 @@ import Home                     from './pages/Home'
 import Login                    from './pages/Login'
 import Dashboard                from './pages/Dashboard'
 import Quiz                     from './pages/Quiz'
+import AITutor                  from './pages/AITutor'  // ← NEW
 import ProtectedRoute           from './components/ProtectedRoute'
 
 function App() {
@@ -69,6 +70,17 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route 
+            path="/tutor"     
+            element={
+            <ProtectedRoute>
+              <AITutor />
+            </ProtectedRoute>
+          } 
+       />  {/* ← NEW */}
+
+
         <Route
           path="/quiz"
           element={
@@ -77,6 +89,10 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+      
+
+
 
         {/* 404 — home pe bhejo */}
         <Route path="*" element={<Navigate to="/" replace />} />
