@@ -8,6 +8,7 @@ import Dashboard                from './pages/Dashboard'
 import Quiz                     from './pages/Quiz'
 import Pomodoro                  from './pages/Pomodoro'   // ← NEW
 import AITutor                  from './pages/AITutor'  // ← NEW
+import MockTest from './pages/MockTest'  // ← ADD
 import ProtectedRoute           from './components/ProtectedRoute'
 
 function App() {
@@ -80,6 +81,9 @@ function App() {
             </ProtectedRoute>
           } 
        />  {/* ← NEW */}
+
+        <Route path="/mocktest" element={<ProtectedRoute><MockTest /></ProtectedRoute>} />
+        
 
        <Route path="/pomodoro"  element={<ProtectedRoute><Pomodoro /></ProtectedRoute>} />  {/* ← NEW */}
         <Route

@@ -227,6 +227,12 @@ function Dashboard() {
                     </button>
 
 
+                    <button
+                      onClick={() => navigate('/mocktest')}
+                      className="flex items-center gap-2 p-3 rounded-xl bg-yellow-50 text-yellow-700 font-medium text-sm hover:bg-yellow-100 transition"
+                    >
+                      <span className="text-xl">📝</span> Mock Test
+                    </button>
 
                   
                     <button
