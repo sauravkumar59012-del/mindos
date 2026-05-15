@@ -228,7 +228,7 @@ function Dashboard() {
 
 
 
-                    // Quick Actions grid mein ye add karo:
+                  
                     <button
                       onClick={() => navigate('/pomodoro')}
                       className="flex items-center gap-2 p-3 rounded-xl bg-orange-50 text-orange-700 font-medium text-sm hover:bg-orange-100 transition"
