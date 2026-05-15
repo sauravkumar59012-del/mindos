@@ -62,6 +62,16 @@ function Dashboard() {
             >
               🤖 AI Tutor
             </button>
+
+
+            <button
+              onClick={() => navigate('/pomodoro')}
+              className="text-sm text-gray-500 px-3 py-2 rounded-xl hover:bg-gray-100 transition"
+            >
+              ⏱️ Timer
+            </button>
+
+
             <button
               onClick={() => navigate('/quiz')}
               className="flex items-center gap-2 bg-purple-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-purple-700 transition active:scale-95"
@@ -215,6 +225,19 @@ function Dashboard() {
                     >
                       <span className="text-xl">🤖</span> AI Tutor
                     </button>
+
+
+
+                    // Quick Actions grid mein ye add karo:
+                    <button
+                      onClick={() => navigate('/pomodoro')}
+                      className="flex items-center gap-2 p-3 rounded-xl bg-orange-50 text-orange-700 font-medium text-sm hover:bg-orange-100 transition"
+                    >
+                      <span className="text-xl">⏱️</span> Pomodoro
+                    </button>
+
+
+
                     <button
                       onClick={() => navigate('/quiz')}
                       className="flex items-center gap-2 p-3 rounded-xl bg-green-50 text-green-700 font-medium text-sm hover:bg-green-100 transition"

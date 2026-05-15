@@ -6,6 +6,7 @@ import Home                     from './pages/Home'
 import Login                    from './pages/Login'
 import Dashboard                from './pages/Dashboard'
 import Quiz                     from './pages/Quiz'
+import Pomodoro                  from './pages/Pomodoro'   // ← NEW
 import AITutor                  from './pages/AITutor'  // ← NEW
 import ProtectedRoute           from './components/ProtectedRoute'
 
@@ -80,7 +81,7 @@ function App() {
           } 
        />  {/* ← NEW */}
 
-
+       <Route path="/pomodoro"  element={<ProtectedRoute><Pomodoro /></ProtectedRoute>} />  {/* ← NEW */}
         <Route
           path="/quiz"
           element={
